@@ -9,8 +9,8 @@ const Symbols = [
 const view = {
   displayCards(number) {
     const rootElement = document.querySelector('#cards')
-    const arr52 = Array.from(Array(52).keys())
-    let rawHTML = arr52.map((index) => this.getCardElement(index)).join('')
+    const randomCardArray = this.getRandomNumberArray(number)
+    let rawHTML = randomCardArray.map((index) => this.getCardElement(index)).join('')
     rootElement.innerHTML = rawHTML
   },
   getCardElement(index) {
@@ -37,6 +37,20 @@ const view = {
       default:
         return number
     }
+  },
+  getRandomNumberArray(count) {
+    //創一個０－５１的鎮列
+    //使用for迴圈，
+    //隨機跟中間人任何一個數字
+    //從最後面開始，跟隨機抽中的數字對調。
+    const numberArray = Array.from(Array(count).keys());
+    console.log(numberArray)
+    for (let index = numberArray.length - 1; index > 0; index--) {
+      let randomIndex = Math.floor(Math.random() * (index - 1));
+      [numberArray[index], numberArray[randomIndex]] = [numberArray[randomIndex], numberArray[index]]
+    }
+    console.log(numberArray)
+    return numberArray
   }
 }
 
@@ -48,4 +62,4 @@ const control = {
 
 }
 
-view.displayCards(32)
+view.displayCards(52)

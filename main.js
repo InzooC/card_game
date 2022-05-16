@@ -5,6 +5,9 @@ const GAME_STATE = {
   CardsMatched: 'CardsMatched',
   GameFinished: 'GameFinished'
 }
+
+//之後把邏輯改成 １－９（四個花色），加起來＝１０得分
+
 const Symbols = [
   'https://assets-lighthouse.alphacamp.co/uploads/image/file/17989/__.png', // 黑桃
   'https://assets-lighthouse.alphacamp.co/uploads/image/file/17992/heart.png', // 愛心
@@ -43,14 +46,17 @@ const view = {
     </div>
     `
   },
-  flipCard(card) {
-    if (card.classList.contains('back')) {
-      card.classList.remove('back')
-      card.innerHTML = this.getCardContent(Number(card.dataset.index))
-      return
-    }
-    card.classList.add('back')
-    card.innerHTML = null
+  flipCards(...cards) {
+    cards.map(card => {
+      if (card.classList.contains('back')) {
+        card.classList.remove('back')
+        card.innerHTML = this.getCardContent(Number(card.dataset.index))
+        return
+      }
+      card.classList.add('back')
+      card.innerHTML = null
+
+    })
   },
   transformNumber(number) {
     switch (number) {
@@ -66,19 +72,31 @@ const view = {
         return number
     }
   },
-
+  pairedCards(...cards) {
+    console.log(cards)
+    cards.map(card => {
+      card.classList.add('paired')
+    })
+  }
 }
 
 const model = {
-  revealedCard: [],
+  revealedCards: [],
   isCardMatched() {
-    // if (this.revealedCard[0].dataset.index % 13 === this.revealedCard[1].dataset.index % 13) {
+    // if (this.revealedCards[0].dataset.index % 13 === this.revealedCard[1].dataset.index % 13) {
     //   return true
-    // } else if (!this.revealedCard[0].dataset.index % 13 === this.revealedCard[1].dataset.index % 13) {
+    // } else if (!this.revealedCards[0].dataset.index % 13 === this.revealedCards[1].dataset.index % 13) {
     //   return false
     // }
+    // return this.revealedCards[0].dataset.index % 13 === this.revealedCards[1].dataset.index % 13
 
-    return this.revealedCard[0].dataset.index % 13 === this.revealedCard[1].dataset.index % 13
+    if (this.revealedCards[0].dataset.index % 13 === 12 && this.revealedCards[1].dataset.index % 13 === 12) {
+      return true //兩張都是13
+    } else if (((this.revealedCards[0].dataset.index % 13) + (this.revealedCards[1].dataset.index % 13)) === 11) {
+      return true  //加起來=13
+    } else {
+      return false
+    }
   }
 }
 
@@ -94,29 +112,46 @@ const control = {
     switch (this.currentState) {
       case GAME_STATE.FirstCardWaits:
         console.log('第一張牌 :' + card.dataset.index)
-        view.flipCard(card)
-        model.revealedCard.push(card)
+        view.flipCards(card)
+        model.revealedCards.push(card)
         this.currentState = GAME_STATE.SecondCardWaits
         break
       case GAME_STATE.SecondCardWaits:
         console.log('第二張牌:' + card.dataset.index)
-        view.flipCard(card)
-        model.revealedCard.push(card)
-        console.log(model.isCardMatched())
+        view.flipCards(card)
+        model.revealedCards.push(card)
+        if (model.isCardMatched()) {
+          this.currentState = GAME_STATE.CardsMatched
+          view.pairedCards(...model.revealedCards)
+          model.revealedCards = []
+          this.currentState = GAME_STATE.FirstCardWaits
+          //給score加分
+
+        } else if (!model.isCardMatched()) {
+          this.currentState = GAME_STATE.CardsMatchFailed
+          //卡片延遲１秒後闔上
+          // setTimeout(() => {
+          //   view.flipCards(...model.revealedCards)
+          //   model.revealedCards = []
+          //   this.currentState = GAME_STATE.FirstCardWaits
+          // }, 1000)
+          setTimeout(this.resetCards, 1000)
+        }
         break
     }
-
-
+  },
+  resetCards() {
+    view.flipCards(...model.revealedCards)
+    model.revealedCards = []
+    control.currentState = GAME_STATE.FirstCardWaits
   }
-
-
 }
-
 
 control.generateCards()
 
 document.querySelectorAll('.card').forEach(card => {
   card.addEventListener('click', onCLickCard => {
     control.dispatchCardAction(card)
+    console.log(control.currentState)
   })
 })

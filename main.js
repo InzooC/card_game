@@ -39,12 +39,9 @@ const view = {
     let number = this.transformNumber((index % 13) + 1)
     let symbol = Symbols[Math.floor(index / 13)]
     return `
-    <div class="card">
-      <p>${number}</p>
+    <p>${number}</p>
       <img src="${symbol}" alt="">
-      <p>${number}</p>
-    </div>
-    `
+    <p>${number}</p>`
   },
   flipCards(...cards) {
     cards.map(card => {
@@ -77,8 +74,26 @@ const view = {
     cards.map(card => {
       card.classList.add('paired')
     })
+  },
+  renderScore(score) {
+    document.querySelector('.score').innerHTML = `總得分: ${score}`
+  },
+  renderTriedTimes(triedTimes) {
+    document.querySelector('.tried').innerHTML = `已嘗試次數: ${triedTimes} 次`
+  },
+  wrongAnimation(...cards) {
+    cards.map((card) => {
+      card.classList.add('wrong')
+      card.addEventListener('animationend', event => {
+        event.target.classList.remove('wrong'), { once: true }
+      })
+    })
+  },
+  showGameFinished() {
+    alert('恭喜達到100分')
   }
 }
+
 
 const model = {
   revealedCards: [],
@@ -97,7 +112,9 @@ const model = {
     } else {
       return false
     }
-  }
+  },
+  score: 0,
+  triedTimes: 0
 }
 
 const control = {
@@ -118,23 +135,29 @@ const control = {
         break
       case GAME_STATE.SecondCardWaits:
         console.log('第二張牌:' + card.dataset.index)
+        //triedTime + 1 and render
+        model.triedTimes += 1
+        view.renderTriedTimes(model.triedTimes)
+
         view.flipCards(card)
         model.revealedCards.push(card)
         if (model.isCardMatched()) {
           this.currentState = GAME_STATE.CardsMatched
           view.pairedCards(...model.revealedCards)
           model.revealedCards = []
-          this.currentState = GAME_STATE.FirstCardWaits
-          //給score加分
-
+          //score + 1
+          model.score += 10
+          view.renderScore(model.score)
+          if (model.score === 100) {
+            this.currentState = GAME_STATE.GameFinished
+            setTimeout(view.showGameFinished, 200)
+            // view.showGameFinished()
+          } else {
+            this.currentState = GAME_STATE.FirstCardWaits
+          }
         } else if (!model.isCardMatched()) {
           this.currentState = GAME_STATE.CardsMatchFailed
-          //卡片延遲１秒後闔上
-          // setTimeout(() => {
-          //   view.flipCards(...model.revealedCards)
-          //   model.revealedCards = []
-          //   this.currentState = GAME_STATE.FirstCardWaits
-          // }, 1000)
+          view.wrongAnimation(...model.revealedCards)
           setTimeout(this.resetCards, 1000)
         }
         break
